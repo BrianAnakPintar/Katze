@@ -60,6 +60,13 @@ func (this *CPU) Write(addr uint16, data uint8) {
     this.Bus.Write(addr, data);
 }
 
+func (this *CPU) Write_u16(addr uint16, data uint16) {
+    hi := uint8(data >> 8)
+    lo := uint8(data & 0xff)
+    this.Write(addr, lo)
+    this.Write(addr+1, hi)
+}
+
 func (this *CPU) Read(addr uint16) uint8 {
     return this.Bus.Read(addr);
 }
@@ -92,6 +99,24 @@ func (this *CPU) push_u16(data uint16) {
     this.push(uint8(data))
 }
 
+func (this *CPU) Load(program []byte) {
+    for i := 0; i < len(program); i++ {
+        this.Write(0x8000 + uint16(i), program[i])
+    }
+    this.Write_u16(0xFFFC, 0x8000)
+}
+
+func (this *CPU) Reset() {
+    this.A = 0
+    this.X = 0
+    this.Y = 0
+    this.SP = STACK_RESET
+    this.STATUS = 0
+    this.PC = this.Read_u16(0xFFFC)
+    this.Bus = GetBus()
+    this.cycles_left = 0
+}
+
 func (this *CPU) pop() uint8 {
     this.SP++
     return this.Read(STACK + uint16(this.SP))
@@ -117,6 +142,10 @@ func (this *CPU) Tick() {
         this.cycles_left += cycles - 1
     }
     this.cycles_left--;
+}
+
+func (this *CPU) InstructionFinished() bool {
+    return this.cycles_left == 0
 }
 
 func (cpu *CPU) fetchOperand(mode AddressingMode) Operand {

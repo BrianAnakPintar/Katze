@@ -8,7 +8,7 @@ type Operand struct {
 
 type Instruction struct {
     code byte
-    name string
+    Name string
     size uint8
     cycles uint8
     mode AddressingMode
