@@ -57,7 +57,7 @@ func MakeCPU() *CPU {
 }
 
 func (this *CPU) Write(addr uint16, data uint8) {
-    this.Bus.Write(addr, data);
+    this.Bus.CpuWrite(addr, data);
 }
 
 func (this *CPU) Write_u16(addr uint16, data uint16) {
@@ -68,12 +68,12 @@ func (this *CPU) Write_u16(addr uint16, data uint16) {
 }
 
 func (this *CPU) Read(addr uint16) uint8 {
-    return this.Bus.Read(addr);
+    return this.Bus.CpuRead(addr);
 }
 
 func (this *CPU) Read_u16(addr uint16) uint16 {
-    lo := uint16(this.Bus.Read(addr))
-    hi := uint16(this.Bus.Read(addr + 1))
+    lo := uint16(this.Bus.CpuRead(addr))
+    hi := uint16(this.Bus.CpuRead(addr + 1))
     return hi << 8 | lo
 }
 
