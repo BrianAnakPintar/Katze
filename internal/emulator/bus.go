@@ -18,6 +18,10 @@ type BUS struct {
 
 var BusInstance *BUS;
 
+func (this *BUS) GetCPU() *CPU {
+    return this.cpu
+}
+
 func GetBus() *BUS {
     if BusInstance == nil {
         lock.Lock()
@@ -72,5 +76,10 @@ func (bus *BUS) Reset() {
 
 // Does a full tick
 func (bus *BUS) Clock() {
+    bus.ppu.clock();
 
+    if bus.systemClockCounter % 3 == 0 {
+        bus.cpu.Tick();
+    }
+    bus.systemClockCounter++
 }

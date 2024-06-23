@@ -68,13 +68,13 @@ func asl(cpu *CPU, op Operand) {
         val := cpu.A
         cpu.SetCFlag(val & 0x80 != 0)
         val = val << 1
-        cpu.SetZNFlag(cpu.A)
+        cpu.SetZNFlag(val)
         cpu.A = val
     } else {
         val := cpu.Read(op.address)
         cpu.SetCFlag(val & 0x80 != 0)
         val = val << 1
-        cpu.SetZNFlag(cpu.A)
+        cpu.SetZNFlag(val)
         cpu.Write(op.address, val)
     }
 }
@@ -86,7 +86,7 @@ func bcc(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -98,7 +98,7 @@ func bcs(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -110,7 +110,7 @@ func beq(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -130,7 +130,7 @@ func bmi(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -141,7 +141,7 @@ func bne(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -153,7 +153,7 @@ func bpl(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -174,7 +174,7 @@ func bvc(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -186,7 +186,7 @@ func bvs(cpu *CPU, op Operand) {
         cpu.cycles_left++;
         
         if op.extra_cycle {
-            cpu.cycles_left += 1; // TODO: Recheck if +1 or +2
+            cpu.cycles_left += 2; // TODO: Recheck if +1 or +2
         }
     }
 }
@@ -317,9 +317,9 @@ func jsr(cpu *CPU, op Operand) {
 
 // LDA - Load value of memory to Register A
 func lda(cpu *CPU, op Operand) {
-    val := cpu.Read(op.address)
-    cpu.A = val
+    cpu.A = cpu.Read(op.address)
     cpu.SetZNFlag(cpu.A)
+
     if op.extra_cycle {
         cpu.cycles_left++
     }
@@ -349,13 +349,13 @@ func lsr(cpu *CPU, op Operand) {
         val := cpu.A
         cpu.SetCFlag(val & 0x01 != 0)
         val = val >> 1
-        cpu.SetZNFlag(cpu.A)
         cpu.A = val
+        cpu.SetZNFlag(cpu.A)
     } else {
         val := cpu.Read(op.address)
         cpu.SetCFlag(val & 0x01 != 0)
         val = val >> 1
-        cpu.SetZNFlag(cpu.A)
+        cpu.SetZNFlag(val)
         cpu.Write(op.address, val)
     }
 }

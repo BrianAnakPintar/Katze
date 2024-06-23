@@ -1,4 +1,4 @@
-package emulator 
+package emulator
 
 /*
 Flags are based on https://www.nesdev.org/wiki/Status_flags
@@ -115,6 +115,9 @@ func (this *CPU) Reset() {
     this.PC = this.Read_u16(0xFFFC)
     this.Bus = GetBus()
     this.cycles_left = 0
+    
+    this.SetFlag(FLAG_BREAK2, true)
+    this.SetFlag(FLAG_INTERRUPT, true)
 }
 
 func (this *CPU) pop() uint8 {
@@ -130,6 +133,7 @@ func (this *CPU) pop_u16() uint16 {
 
 // Represents what happens in a single clock cycle.
 func (this *CPU) Tick() {
+    this.SetFlag(FLAG_BREAK2, true) // Always pushed as 1 according to nesdev.org
     if this.cycles_left == 0 {
         opcode := this.Read(this.PC);
         this.PC++;
@@ -137,7 +141,7 @@ func (this *CPU) Tick() {
         var instr Instruction = Instructions[opcode];
         cycles := instr.cycles;
 
-        operand := this.fetchOperand(instr.mode)
+        operand := this.fetchOperand(instr.Mode)
         instr.handler(this, operand)
         this.cycles_left += cycles - 1
     }
@@ -212,6 +216,52 @@ func (cpu *CPU) fetchOperand(mode AddressingMode) Operand {
 		addr := cpu.PC + rel
         do_cycle := addr & 0xFF00 != cpu.PC & 0xFF00
 		return Operand{mode: mode,address: addr, extra_cycle: do_cycle}
+	default:
+		panic("invalid addressing mode")
+	}
+}
+
+func (cpu *CPU) DebugGetAddress(mode AddressingMode) uint16 {
+	switch mode {
+	case Implied:
+		return 0
+	case Accumulator:
+		return 0
+	case Immediate:
+		return cpu.PC
+	case ZeroPage:
+		return uint16(cpu.Read(cpu.PC))
+	case ZeroPageX:
+		return (uint16(cpu.Read(cpu.PC)) + uint16(cpu.X)) & 0x00FF
+	case ZeroPageY:
+		return (uint16(cpu.Read(cpu.PC)) + uint16(cpu.Y)) & 0x00FF
+	case Absolute:
+		return cpu.Read_u16(cpu.PC)
+	case AbsoluteX:
+		addr := cpu.Read_u16(cpu.PC)
+		addrX := addr + uint16(cpu.X)
+        return addrX
+	case AbsoluteY:
+		addr := cpu.Read_u16(cpu.PC)
+		addrY := addr + uint16(cpu.Y)
+        return addrY
+	case Indirect:
+		ptrAddr := cpu.Read_u16(cpu.PC)
+		return cpu.Read_u16(ptrAddr)
+	case IndirectX:
+		ptrAddr := (uint16(cpu.Read(cpu.PC)) + uint16(cpu.X)) & 0x00FF
+		return cpu.Read_u16(ptrAddr)
+	case IndirectY:
+		ptrAddr := uint16(cpu.Read(cpu.PC))
+		addr := cpu.Read_u16(ptrAddr)
+		addrY := addr + uint16(cpu.Y)
+        return addrY
+	case Relative:
+		rel := uint16(cpu.Read(cpu.PC))
+		if rel&(1<<7) != 0 {
+			rel |= 0xFF00
+		}
+		return cpu.PC + 1 + rel
 	default:
 		panic("invalid addressing mode")
 	}

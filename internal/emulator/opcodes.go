@@ -7,11 +7,11 @@ type Operand struct {
 }
 
 type Instruction struct {
-    code byte
+    Code byte
     Name string
-    size uint8
+    Size uint8
     cycles uint8
-    mode AddressingMode
+    Mode AddressingMode
     handler func (*CPU, Operand)
 }
 

@@ -4,6 +4,13 @@ type PPU struct {
     cart *Cartridge
     nameTable [2][1024]byte
     paletteTable [32]byte
+
+
+    scanline int16
+    cycle int16
+    
+    //DEBUG PURPOSES
+    FrameComplete bool
 }
 
 func (this *PPU) cpuWrite(addr uint16, data uint8) {
@@ -70,4 +77,17 @@ func (this *PPU) ppuRead(addr uint16) uint8 {
 
 func (this *PPU) connectCartridge(c *Cartridge) {
     this.cart = c
+}
+
+func (this *PPU) clock() {
+    this.cycle++;
+    if this.cycle >= 341 {
+        this.cycle = 0;
+        this.scanline++;
+
+        if this.scanline >= 261 {
+            this.scanline = -1
+            this.FrameComplete = true
+        }
+    }
 }

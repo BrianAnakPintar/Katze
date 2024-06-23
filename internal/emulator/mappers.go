@@ -1,9 +1,10 @@
 package emulator
 
 /*
-Mappers are not actually writing data. Instead they 
-
-
+Mappers are not actually writing data. Instead they work similar to that of Virtual Memory
+They basically take in an address and return the physical address. Pretty cool!
+Additionally There are various types of Mapper that's supported by the NES, each with its own
+quirks on how they translate the addresses.
 */
 
 type Mapper interface {

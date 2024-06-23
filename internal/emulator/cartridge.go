@@ -1,6 +1,7 @@
 package emulator
 
 import (
+	"fmt"
 	"hash/crc32"
 	"io"
 	"os"
@@ -32,6 +33,7 @@ func LoadCartridge(path string) *Cartridge {
     file, err := os.Open(path)
     if err != nil {
         // Uh oh.
+        fmt.Printf("Error: %s, %s\n", err, path)
         return nil
     }
     defer file.Close()
@@ -44,6 +46,7 @@ func LoadCartridge(path string) *Cartridge {
     }
     // Check header signature.
 	if header[0] != 'N' || header[1] != 'E' || header[2] != 'S' || header[3] != 0x1A {
+        fmt.Println("HEADER FILE NOT GOOD")
 		return nil
 	}
 
@@ -96,7 +99,7 @@ func LoadCartridge(path string) *Cartridge {
     } else if ines_file_type == 2 {
         // TODO
     }
-
+    fmt.Println("ines_file_type Err")
     return nil
 }
 
