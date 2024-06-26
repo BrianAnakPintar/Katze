@@ -49,4 +49,3 @@ func ShowCPU(x int32, y int32, cpu *NESpkg.CPU) {
     showFlags(x, y + 18, cpu)
     showRegisters(x, y + 18 * 2, cpu)
 }
-
