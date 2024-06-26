@@ -34,6 +34,19 @@ const (
     Relative
 )
 
+type Interrupt = uint8
+
+const (
+	interruptNMI Interrupt = iota + 1
+	interruptIRQ
+)
+
+const (
+	vecNMI   uint16 = 0xFFFA // Non-maskable interrupt vector
+	vecReset uint16 = 0xFFFC // Reset vector
+	vecIRQ   uint16 = 0xFFFE // Interrupt request vector
+)
+
 const STACK uint16 = 0x0100;
 const STACK_RESET uint8 = 0xFD;
 
@@ -48,6 +61,7 @@ type CPU struct {
     Bus *BUS        // The Bus connecting CPU to everything else.
 
     cycles_left uint8 // How many cycles left.
+    interrupt Interrupt
 }
 
 func MakeCPU() *CPU {
@@ -103,7 +117,7 @@ func (this *CPU) Load(program []byte) {
     for i := 0; i < len(program); i++ {
         this.Write(0x8000 + uint16(i), program[i])
     }
-    this.Write_u16(0xFFFC, 0x8000)
+    this.Write_u16(vecReset, 0x8000)
 }
 
 func (this *CPU) Reset() {
@@ -112,12 +126,14 @@ func (this *CPU) Reset() {
     this.Y = 0
     this.SP = STACK_RESET
     this.STATUS = 0
-    this.PC = this.Read_u16(0xFFFC)
+    this.PC = this.Read_u16(vecReset)
     this.Bus = GetBus()
     this.cycles_left = 0
     
     this.SetFlag(FLAG_BREAK2, true)
     this.SetFlag(FLAG_INTERRUPT, true)
+
+    this.interrupt = 0
 }
 
 func (this *CPU) pop() uint8 {
@@ -129,6 +145,34 @@ func (this *CPU) pop_u16() uint16 {
     lo := this.pop()
     hi := this.pop()
     return uint16(hi) << 8 | uint16(lo)
+}
+
+// Interrupts
+
+func (this *CPU) nmi() {
+    this.push_u16(this.PC)
+    this.push(this.STATUS)
+    this.SetFlag(FLAG_INTERRUPT, true)
+    this.PC = this.Read_u16(vecNMI)
+    this.cycles_left += 7
+}
+
+func (this *CPU) TriggerNMI() {
+    this.interrupt = interruptNMI
+}
+
+func (this *CPU) irq() {
+    this.push_u16(this.PC)
+    this.push(this.STATUS)
+    this.SetFlag(FLAG_INTERRUPT, true)
+    this.PC = this.Read_u16(vecIRQ)
+    this.cycles_left += 7
+}
+
+func (this *CPU) TriggerIRQ() {
+    if !this.ContainsFlag(FLAG_INTERRUPT) {
+        this.interrupt = interruptIRQ
+    }
 }
 
 // Represents what happens in a single clock cycle.
@@ -199,7 +243,7 @@ func (cpu *CPU) fetchOperand(mode AddressingMode) Operand {
 		ptrAddr := (uint16(cpu.Read(cpu.PC)) + uint16(cpu.X)) & 0x00FF
 		addr := cpu.Read_u16(ptrAddr)
 		cpu.PC++
-		return Operand{mode: mode,address: addr,}
+		return Operand{mode: mode,address: addr}
 	case IndirectY:
 		ptrAddr := uint16(cpu.Read(cpu.PC))
 		cpu.PC++

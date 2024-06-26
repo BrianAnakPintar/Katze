@@ -81,5 +81,10 @@ func (bus *BUS) Clock() {
     if bus.systemClockCounter % 3 == 0 {
         bus.cpu.Tick();
     }
+
+    if bus.ppu.nmi {
+        bus.ppu.nmi = false
+        bus.cpu.nmi()
+    }
     bus.systemClockCounter++
 }
