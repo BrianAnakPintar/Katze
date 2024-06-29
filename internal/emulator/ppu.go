@@ -1,5 +1,11 @@
 package emulator
 
+import (
+	"fmt"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
+
 type (
     ControlFlag = uint8
     MaskFlag = uint8
@@ -37,18 +43,23 @@ const (
 
 type PPU struct {
     cart *Cartridge
-    CTRL ControlFlag     // 0x2000
-    MASK MaskFlag        // 0x2001
-    STATUS StatusFlag    // 0x2002
-    OAMADDR uint8        // 0x2003
-    OAMDATA uint8        // 0x2004
-    SCROLL uint8         // 0x2005
-    ADDR uint8           // 0x2006
-    DATA uint8           // 0x2007
+    CTRL ControlFlag        // 0x2000
+    MASK MaskFlag           // 0x2001
+    STATUS StatusFlag       // 0x2002
+    OAMADDR uint8           // 0x2003
+    OAMDATA uint8           // 0x2004
+    SCROLL uint8            // 0x2005
+    ADDR uint8              // 0x2006
+    DATA uint8              // 0x2007
     nameTable [2][1024]byte
     patternTable [2][4096]byte
     paletteTable [32]byte
 
+    PaletteScreen [0x40]Color
+
+    screen rl.RenderTexture2D
+    sprNameTable [2]*rl.Image
+    sprTable [2]*rl.Image
 
     scanline int16
     cycle int16
@@ -60,6 +71,14 @@ type PPU struct {
 
     //DEBUG PURPOSES
     FrameComplete bool
+}
+
+func MakePPU() *PPU {
+    var c1 *rl.Image = rl.GenImageColor(100, 100, rl.Blank)
+    var c2 *rl.Image = rl.GenImageColor(100, 100, rl.Blank)
+    var sprNT [2]*rl.Image = [2]*rl.Image{c1, c2}
+    ppu := PPU{PaletteScreen: InitPaletteScreen(), sprNameTable: sprNT}
+    return &ppu
 }
 
 
@@ -230,7 +249,6 @@ func (this *PPU) ppuRead(addr uint16) uint8 {
     addr &= 0x3FFF;
     
     if this.cart.ppuRead(addr, &data) {
-
     } else if (addr >= 0 && addr <= 0x1FFF) {
         data = this.patternTable[(addr & 0x1000) >> 12][addr & 0x0FFF]
     } else if (addr >= 0x2000 && addr <= 0x3FFF) {
@@ -291,6 +309,13 @@ func (this *PPU) connectCartridge(c *Cartridge) {
 }
 
 func (this *PPU) clock() {
+
+    // color1 := rl.Color{R: 0x3F, G: 0x3F, B: 0x3F, A: 0xFF} // Replace with desired color
+	color1 := rl.Color{R: 0x30, G: 0x30, B: 0x30, A: 0xFF} // Replace with desired color
+
+    rl.DrawPixel(int32(this.cycle)&(256*3)-1, int32(this.scanline), color1)
+    fmt.Printf("Draw x: %d \n", this.cycle & (256 * 3))
+
     if (this.scanline == -1 && this.cycle == 1) {
         this.SetStatusFlag(StatusVerticalBlank, false)
     }
@@ -305,6 +330,7 @@ func (this *PPU) clock() {
 
     this.cycle++;
     if this.cycle >= 341 {
+        fmt.Println("Cycle")
         this.cycle = 0;
         this.scanline++;
 
@@ -313,4 +339,36 @@ func (this *PPU) clock() {
             this.FrameComplete = true
         }
     }
+}
+
+func (this *PPU) GetColorFromPalette(palette uint8, pixel uint8) Color {
+    return this.PaletteScreen[this.ppuRead(0x3F00 + uint16(pixel)) & 0x3F]
+}
+
+func colorToRaylibColor(c Color) rl.Color {
+    return rl.NewColor(c.R, c.G, c.B, c.A)
+}
+
+
+func (this *PPU) GetPatternTable(i uint8, palette uint8) *rl.Image {
+    for y := int32(0); y < 16; y++ {
+        for x := int32(0); x < 16; x++ {
+            var offset uint16 = uint16(y) * 256 + uint16(x) * 16 // This is because our "Matrix" is just a long vector
+            for row := int32(0); row < 8; row++ {
+                var tile_lsb uint8 = this.ppuRead(uint16(i) * 0x1000 + offset + uint16(row) * 0x0000)
+                var tile_msb uint8 = this.ppuRead(uint16(i) * 0x1000 + offset + uint16(row) * 0x0008)
+
+                for col := int32(0); col < 8; col++ {
+                    var pixel uint8 = (tile_lsb & 0x01) + (tile_msb & 0x01)
+                    tile_lsb >>= 1
+                    tile_msb >>= 1
+                    tmp_color := this.GetColorFromPalette(palette, pixel)
+                    color := colorToRaylibColor(tmp_color)
+                    rl.ImageDrawPixel(this.sprNameTable[i], x * 8 + (7 - col), y * 8 + row, color)
+                }
+            }
+        }
+    }
+
+    return this.sprNameTable[i]
 }

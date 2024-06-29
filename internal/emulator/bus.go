@@ -22,12 +22,16 @@ func (this *BUS) GetCPU() *CPU {
     return this.cpu
 }
 
+func (this *BUS) GetPPU() *PPU {
+    return this.ppu
+}
+
 func GetBus() *BUS {
     if BusInstance == nil {
         lock.Lock()
         defer lock.Unlock()
         if BusInstance == nil {
-            BusInstance = &BUS{cpu: nil, cpuRam: make([]uint8, 1024 * 2)}
+            BusInstance = &BUS{cpu: nil, cpuRam: make([]uint8, 1024 * 2), ppu: MakePPU()}
         }
     }
 
@@ -65,7 +69,7 @@ func (bus *BUS) CpuRead(addr uint16) uint8 {
 // Inserts a Cartridge into the NES
 func (bus *BUS) InsertCartridge(cartridge *Cartridge) {
     bus.cartridge = cartridge
-
+    bus.ppu.connectCartridge(cartridge)
 }
 
 // Reset button
